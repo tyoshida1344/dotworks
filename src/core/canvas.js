@@ -1,4 +1,4 @@
-import { S } from './state.js'
+import { S, saveDefaultSize } from './state.js'
 import { clearHistory } from './history.js'
 
 let bgX, pxX, gX, _bgEl, _cvEl, _gridEl, _wrapEl
@@ -20,10 +20,11 @@ export function resize() {
   drawBg(); drawPx(); drawGrid()
 }
 
-// キャンバスサイズ変更（状態リセット込み）
+// キャンバスサイズ変更（状態リセット込み）。選んだサイズは次回の既定値として保存
 export function resetCanvas(n) {
   S.cols = S.rows = n
   S.pixels = new Array(n * n).fill(null)
+  saveDefaultSize(n)
   clearHistory()
   resize()
 }
