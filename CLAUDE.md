@@ -45,6 +45,7 @@ src/
       PalettePanel.vue   ← パレット選択 + スウォッチグリッド
       EnhancePanel.vue   ← Auto Outline / Remove Outline
       GuidesPanel.vue    ← 頭身スライダー、中心線、カスタム補助線
+      BackgroundPanel.vue ← キャンバス背景色（透過チェッカー／プリセット／カスタム。書き出し非対象。追加カスタム色は localStorage `dotworks.bgColors` に永続、選択状態 S.bg は非永続）
       RefImagePanel.vue  ← 参照画像（ドロップゾーン・オーバーレイ・パレット抽出・ドット変換）
 ```
 
@@ -62,7 +63,7 @@ src/
 
 `bgcv` → `cv` → `gridcv` の順に重なる（全て `position: absolute`）。`gridcv` が最前面でマウスイベントを受け取る。
 
-- `bgcv`：透過チェッカー背景（静的、リサイズ時のみ再描画）
+- `bgcv`：背景レイヤー。`S.bg` が null なら透過チェッカー、色指定なら単色。表示専用で `exportPNG()` は参照しない。`S.bg` 変更時に `TheCanvas.vue` が watch して再描画
 - `cv`：参照画像オーバーレイ（底面）＋ピクセルデータ（前面）
 - `gridcv`：グリッド線・補助線（書き出し非対象）
 

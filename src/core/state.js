@@ -34,6 +34,7 @@ export const S = reactive({
   vDivUnits: 0,
   refImg: null,
   overlay: 0.30,
+  bg: null,            // キャンバス背景色（null = 透過チェッカー）。表示のみ・書き出し非対象
   outlineColor: '#000000',
 })
 // アンドゥ履歴は history.js でモジュールレベルの素の配列として保持する

@@ -49,6 +49,13 @@ export function zoomCanvas(delta) {
 }
 
 export function drawBg() {
+  // 背景色が指定されていれば単色で塗る（プレビュー用・PNG 書き出しには非対象）
+  if (S.bg) {
+    bgX.fillStyle = S.bg
+    bgX.fillRect(0, 0, _bgEl.width, _bgEl.height)
+    return
+  }
+  // デフォルトは透過を示すチェッカー
   const c = S.cell
   for (let y = 0; y < S.rows; y++) {
     for (let x = 0; x < S.cols; x++) {

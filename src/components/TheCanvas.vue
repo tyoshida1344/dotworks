@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { S } from '../core/state.js'
 import { ui } from '../core/ui.js'
-import { initContexts, resize, drawPx, drawGrid, drawHover, drawFillPreview, zoomCanvas } from '../core/canvas.js'
+import { initContexts, resize, drawPx, drawGrid, drawHover, drawFillPreview, zoomCanvas, drawBg } from '../core/canvas.js'
 import { applyDraw, floodFill, getFillArea, bres, idx, inB, setPx } from '../core/tools.js'
 import { saveUndo } from '../core/history.js'
 
@@ -132,6 +132,7 @@ function onWindowMouseup(e) {
 // 補助線系は drawHover 経由（内部で drawGrid を呼ぶ）でホバー枠を維持する
 watch(() => S.overlay,   drawPx)
 watch(() => S.refImg,    drawPx)
+watch(() => S.bg,        drawBg)
 watch(() => S.headUnits, () => drawHover(ui.hoverPos?.[0] ?? null, ui.hoverPos?.[1] ?? null))
 watch(() => S.vDivUnits, () => drawHover(ui.hoverPos?.[0] ?? null, ui.hoverPos?.[1] ?? null))
 
