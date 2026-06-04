@@ -41,6 +41,7 @@ function onClear() {
     <div class="spc"></div>
 
     <div class="hgrp">
+      <button class="btn-t mobile-only" title="パネルを開く" @click="ui.panelOpen = true">☰ パネル</button>
       <button class="btn-t" @click="ui.guidePageOpen = true">? ガイド</button>
       <button title="Ctrl+Z" @click="emit('undo')">↩ Undo</button>
       <button title="Ctrl+Y" @click="emit('redo')">↪ Redo</button>

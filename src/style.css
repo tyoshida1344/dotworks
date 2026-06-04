@@ -25,13 +25,16 @@ body {
   font-family: 'DM Mono', monospace;
   font-size: 16px;
   height: 100vh;
+  height: 100dvh;            /* モバイルのアドレスバー伸縮に追従 */
   overflow: hidden;
+  overscroll-behavior: none; /* 引っ張って更新／バウンスを抑止 */
   user-select: none;
   -webkit-user-select: none;
 }
 
 #layout {
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   display: grid;
   grid-template:
@@ -52,7 +55,11 @@ select, button {
   cursor: pointer;
   border-radius: 3px;
   white-space: nowrap;
+  touch-action: manipulation;   /* ダブルタップズーム/遅延を無効化 */
 }
+
+/* デスクトップでは隠す要素（スマホ用の操作） */
+.mobile-only { display: none; }
 select:focus, button:focus { outline: 1px solid var(--amber); outline-offset: 1px; }
 button:hover { border-color: var(--amber); color: var(--amber); }
 
@@ -163,7 +170,7 @@ button:hover { border-color: var(--amber); color: var(--amber); }
 }
 #bgcv   { z-index: 1; }
 #cv     { z-index: 2; }
-#gridcv { z-index: 3; }
+#gridcv { z-index: 3; touch-action: none; }   /* 描画中のスクロール/ピンチを抑止 */
 
 /* ── サイドバー ───────────────────────────── */
 #side {
@@ -468,3 +475,113 @@ input[type=range] { flex: 1; height: 4px; accent-color: var(--amber); cursor: po
 
 /* 縁取り色ピッカー */
 .out-col { width: 32px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 2px; cursor: pointer; }
+
+/* ── サイドバー・ドロワー（スマホ用） ───────── */
+/* バックドロップとクローズボタンはデスクトップでは出さない（mobile-only / メディアクエリで制御） */
+#side-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 255;
+}
+#side-close {
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--muted);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg2);
+}
+
+/* ── レスポンシブ：スマホ／小型タブレット ───── */
+@media (max-width: 820px) {
+  /* 固定グリッドをやめて縦並びに。ツールバーは横帯、サイドバーはドロワー */
+  #layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ヘッダー：折り返し可・スペーサー無効で左詰め */
+  #hdr {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--hdr);
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  #logo { font-size: 18px; }
+  .spc { display: none; }
+
+  /* ツールバー：縦→横スクロールの帯に */
+  #tbar {
+    flex-direction: row;
+    width: 100%;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 6px 8px;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .tbtn { width: 44px; height: 44px; }
+  .tsep { width: 1px; height: 30px; margin: 0 4px; }
+
+  /* キャンバス領域が残りを埋める */
+  #carea { flex: 1; min-height: 0; }
+
+  /* サイドバーは右からスライドインするドロワー */
+  #side {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(330px, 88vw);
+    transform: translateX(100%);
+    transition: transform .2s ease;
+    z-index: 260;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+  }
+  #side.side-open { transform: translateX(0); }
+
+  /* ステータスバー：情報は省略表示・ズームは右に固定で大きく */
+  #status {
+    gap: 10px;
+    font-size: 12px;
+    padding: 0 10px;
+  }
+  #status > span {
+    min-width: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .zctrl { margin-left: auto; flex-shrink: 0; }
+  .zctrl button { width: 36px; height: 28px; font-size: 20px; }
+
+  /* スマホ用の操作を表示 */
+  .mobile-only { display: inline-flex; align-items: center; }
+  #side-close { display: block; }
+
+  /* ガイド：左ナビ→上部の横スクロールタブに */
+  #gpage { flex-direction: column; }
+  #gnav {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  #gnav-logo { display: none; }
+  .gnav-link {
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: 11px 13px;
+  }
+  .gnav-link.active { border-left: none; border-bottom-color: var(--amber); }
+  #gcontent { padding: 20px 18px; }
+  #gclose { top: 8px; right: 10px; }
+}
