@@ -298,6 +298,14 @@ input[type=range] { flex: 1; height: 4px; accent-color: var(--amber); cursor: po
   border-radius: 3px; padding: 2px 6px;
   font-family: 'DM Mono', monospace; font-size: 13px; color: var(--amber);
 }
+#gcontent .exrow { display: flex; gap: 20px; flex-wrap: wrap; margin: 4px 0 14px; }
+#gcontent .ex { margin: 0; }
+#gcontent .extag { font-family: 'Silkscreen', monospace; font-size: 11px; letter-spacing: 1px; margin-bottom: 5px; }
+#gcontent .ex.ok .extag { color: #5fc070; }
+#gcontent .ex.ng .extag { color: #f06080; }
+#gcontent .exsvg { display: block; border: 1px solid var(--border); background: #14100b; }
+#gcontent figcaption { font-size: 12px; color: var(--muted); margin-top: 6px; max-width: 160px; line-height: 1.5; }
+
 #gclose { position: absolute; top: 12px; right: 16px; padding: 5px 14px; }
 
 /* ── 画像→ドット変換（クロップ） ──────────── */
