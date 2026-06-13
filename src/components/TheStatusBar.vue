@@ -27,7 +27,7 @@ const TOOL_NAMES = {
     </span>
     <span style="min-width:170px">
       <span style="color:var(--amber)">L</span> {{ TOOL_NAMES[S.toolL] ?? S.toolL }}
-      <span style="color:var(--teal);margin-left:8px">R</span> {{ TOOL_NAMES[S.toolR] ?? S.toolR }}
+      <span class="rtool"><span style="color:var(--teal);margin-left:8px">R</span> {{ TOOL_NAMES[S.toolR] ?? S.toolR }}</span>
     </span>
     <div class="zctrl">
       <button @click="zoomCanvas(-4)">−</button>

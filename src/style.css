@@ -516,6 +516,14 @@ input[type=range] { flex: 1; height: 4px; accent-color: var(--amber); cursor: po
   #logo { font-size: 18px; }
   .spc { display: none; }
 
+  /* アクション群：1行に収まらないので全幅・折り返しで配置（Clear / Export の見切れ防止） */
+  .hgrp-actions {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .hgrp-actions button { flex: 1 1 auto; justify-content: center; }
+
   /* ツールバー：縦→横スクロールの帯に */
   #tbar {
     flex-direction: row;
@@ -530,6 +538,12 @@ input[type=range] { flex: 1; height: 4px; accent-color: var(--amber); cursor: po
   }
   .tbtn { width: 44px; height: 44px; }
   .tsep { width: 1px; height: 30px; margin: 0 4px; }
+
+  /* タッチでは左右クリックを区別できないため、L/R バッジを隠す */
+  /* （枠線＝アクティブツール表示は残し、右割り当ての枠線だけ無効化） */
+  .tb-l, .tb-r { display: none; }
+  .tbtn.on-r { border-color: var(--border); }   /* 右割り当ての枠線を無効化 */
+  .rtool { display: none; }
 
   /* キャンバス領域が残りを埋める */
   #carea { flex: 1; min-height: 0; }
