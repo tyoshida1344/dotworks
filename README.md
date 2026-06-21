@@ -35,10 +35,36 @@ npm run dev
 ## コマンド
 
 ```bash
-npm run dev      # 開発サーバー起動（HMR あり）
-npm run build    # プロダクションビルド → dist/
-npm run preview  # ビルド結果の確認
+npm run dev            # 開発サーバー起動（HMR あり）
+npm run build          # プロダクションビルド → dist/
+npm run preview        # ビルド結果の確認
+npm run deploy         # ビルド → Netlify 本番へデプロイ
+npm run deploy:preview # ビルド → Netlify 下書きプレビューURLを生成
 ```
+
+## デプロイ（Netlify）
+
+[Netlify](https://www.netlify.com/) でホストしています。`netlify-cli` を使い、ローカルから一発でビルド＆デプロイできます。
+
+### 初回だけの準備
+
+Netlify アカウントでの認証と、このフォルダと既存サイトの紐付けが必要です（対話・ブラウザ認証）。
+
+```bash
+npx netlify login   # ブラウザが開いて認証
+npx netlify link    # このフォルダを既存の Netlify サイトに紐付け
+```
+
+紐付け情報は `.netlify/`（gitignore 済み）に保存されます。
+
+### デプロイ
+
+```bash
+npm run deploy          # ビルド → 本番URLへ反映
+npm run deploy:preview  # ビルド → 下書きプレビューURLを生成（本番は変えない）
+```
+
+`npm run deploy` は内部で `vite build && netlify deploy --prod --dir=dist` を実行します。ビルド設定（コマンド・公開ディレクトリ）は `netlify.toml` に定義しています。
 
 ## キーボードショートカット
 
