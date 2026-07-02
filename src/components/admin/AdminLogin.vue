@@ -7,12 +7,12 @@ defineProps({
 })
 const emit = defineEmits(['submit'])
 
-const email = ref('')
+const loginId = ref('')
 const password = ref('')
 
 function onSubmit() {
-  if (!email.value || !password.value) return
-  emit('submit', { email: email.value, password: password.value })
+  if (!loginId.value || !password.value) return
+  emit('submit', { loginId: loginId.value, password: password.value })
 }
 </script>
 
@@ -23,8 +23,8 @@ function onSubmit() {
       <p class="admin-login-note">管理者アカウントでログインしてください。</p>
 
       <label class="admin-field">
-        <span>メールアドレス</span>
-        <input v-model="email" type="email" autocomplete="username" required>
+        <span>ログインID</span>
+        <input v-model="loginId" type="text" autocomplete="username" required>
       </label>
       <label class="admin-field">
         <span>パスワード</span>

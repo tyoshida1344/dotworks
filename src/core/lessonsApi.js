@@ -1,10 +1,17 @@
 import { supabase } from './supabase.js'
 
-// Supabase の lessons テーブルとフロントのレッスンオブジェクトを相互変換する。
-// DB 側は id(自動採番 PK) / description(=desc, desc は SQL 予約語) / deleted_at(論理削除) を持つ。
+// レッスンの読み取りは anon で直接（公開）。認証・書き込み・お題画像は Edge Function（admin）経由。
+// 管理者は独自アカウント（admins テーブル）＋セッショントークンで認証する（Supabase Auth は使わない）。
 const TABLE = 'lessons'
 const BUCKET = 'lesson-refs'
+const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin`
+const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+const TOKEN_KEY = 'dotwork.adminToken'   // セッショントークンの保存キー（localStorage）
 
+function getToken() { return localStorage.getItem(TOKEN_KEY) }
+function setToken(t) { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY) }
+
+// DB 行 → フロントのレッスン形（desc は SQL 予約語のため DB では description）
 function rowToLesson(r) {
   return {
     id: r.id,
@@ -18,25 +25,34 @@ function rowToLesson(r) {
   }
 }
 
-// フロント → DB 行。id（PK）・sort_order・deleted_at は書き込み対象に含めない
-// （id は自動採番、sort_order は並び替え、deleted_at は削除処理でのみ触る）。
-function lessonToRow(l) {
-  return {
-    level: l.level,
-    title: l.title,
-    description: l.desc,
-    size: l.size,
-    palette: l.palette,
-    ref: l.ref,
-  }
-}
-
 function assertClient() {
   if (!supabase) throw new Error('Supabase が未設定です（.env を確認してください）。')
 }
 
-// ── レッスン CRUD ─────────────────────────────
-// 並び順は sort_order 昇順（管理画面の並び替えで決まる）。論理削除済み（deleted_at）は除外。
+// 管理 API（Edge Function）呼び出し。認証・書き込みはすべてここを通す。
+// セッショントークンは x-admin-token で送る（Supabase Auth の JWT は使わない）。
+async function callAdmin(action, payload = {}) {
+  assertClient()
+  const res = await fetch(FN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON,
+      'x-admin-token': getToken() ?? '',
+    },
+    body: JSON.stringify({ action, ...payload }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const err = new Error(data.error || `管理APIエラー (${res.status})`)
+    err.status = res.status
+    throw err
+  }
+  return data
+}
+
+// ── レッスン読み取り（公開・anon で直接） ─────────
+// 並び順は sort_order 昇順。論理削除済み（deleted_at）は除外。
 export async function fetchLessons() {
   assertClient()
   const { data, error } = await supabase
@@ -45,102 +61,66 @@ export async function fetchLessons() {
   return data.map(rowToLesson)
 }
 
+// ── レッスン書き込み（Edge Function 経由） ─────────
 export async function createLesson(lesson) {
-  assertClient()
-  // 末尾に追加する。現在（未削除）の最大 sort_order + 1（0 件なら 1）。sort_order は 1 始まり。
-  const { data: maxRows, error: maxErr } = await supabase
-    .from(TABLE).select('sort_order').is('deleted_at', null)
-    .order('sort_order', { ascending: false }).limit(1)
-  if (maxErr) throw maxErr
-  const nextOrder = maxRows.length ? maxRows[0].sort_order + 1 : 1
-
-  const { data, error } = await supabase
-    .from(TABLE).insert({ ...lessonToRow(lesson), sort_order: nextOrder }).select().single()
-  if (error) throw error
-  return rowToLesson(data)
+  const { lesson: row } = await callAdmin('saveLesson', { lesson: { ...lesson, id: undefined } })
+  return rowToLesson(row)
 }
 
 export async function updateLesson(id, lesson) {
-  assertClient()
-  const { data, error } = await supabase
-    .from(TABLE).update({ ...lessonToRow(lesson), updated_at: new Date().toISOString() })
-    .eq('id', id).select().single()
-  if (error) throw error
-  return rowToLesson(data)
+  const { lesson: row } = await callAdmin('saveLesson', { lesson: { ...lesson, id } })
+  return rowToLesson(row)
 }
 
-// 論理削除：物理削除せず deleted_at に時刻を入れる。お題画像はそのまま残す。
 export async function deleteLesson(id) {
-  assertClient()
-  const { error } = await supabase
-    .from(TABLE).update({ deleted_at: new Date().toISOString() }).eq('id', id)
-  if (error) throw error
+  await callAdmin('deleteLesson', { id })   // 論理削除（お題画像は残す）
 }
 
-// 並び替え結果を反映する。id の配列を受け取り、その順に sort_order を 1..n で振り直す。
-// 1 トランザクションで完結する RPC（reorder_lessons）を使い、途中失敗で順序が壊れないようにする。
 export async function reorderLessons(orderedIds) {
-  assertClient()
-  const { error } = await supabase.rpc('reorder_lessons', { ids: orderedIds })
-  if (error) throw error
+  await callAdmin('reorderLessons', { ids: orderedIds })
 }
 
-// ── お題画像アップロード（公開バケット） ───────
-// CDN キャッシュ汚染と URL 列挙を避けるため、毎回ユニークなファイル名で保存する。
+// ── お題画像（署名付きURLでアップロード / Edge Function で削除） ──
+// CDN キャッシュ汚染・URL 列挙を避けるため、毎回ユニークなファイル名で保存する（発行は Edge Function）。
 export async function uploadRefImage(file) {
-  assertClient()
   const ext = (file.name.split('.').pop() || 'png').toLowerCase()
-  const uid = (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`)
-  const path = `${uid}.${ext}`
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-    contentType: file.type || undefined,
-  })
+  const { path, uploadToken, publicUrl } = await callAdmin('createUploadUrl', { ext })
+  const { error } = await supabase.storage.from(BUCKET)
+    .uploadToSignedUrl(path, uploadToken, file, { contentType: file.type || undefined })
   if (error) throw error
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
-  return data.publicUrl
+  return publicUrl
 }
 
-// 公開 URL からバケット内のパスを割り出して画像を削除する（不要になった画像の掃除）。
-// クリーンアップ用途なので失敗しても例外は投げず警告に留める。自バケット以外の URL は無視。
+// 不要になった画像の掃除。失敗しても例外は投げず警告に留める。
 export async function deleteRefImage(refUrl) {
-  if (!supabase || !refUrl) return
-  const marker = `/object/public/${BUCKET}/`
-  const i = refUrl.indexOf(marker)
-  if (i === -1) return
-  const path = refUrl.slice(i + marker.length)
-  if (!path) return
+  if (!refUrl) return
   try {
-    const { error } = await supabase.storage.from(BUCKET).remove([path])
-    if (error) throw error
+    await callAdmin('deleteImage', { url: refUrl })
   } catch (e) {
-    console.warn('[lessons] 旧お題画像の削除に失敗しました（無視して継続）。', e)
+    console.warn('[lessons] お題画像の削除に失敗しました（無視して継続）。', e)
   }
 }
 
-// ── 認証（Supabase Auth） ─────────────────────
-export async function signIn(email, password) {
-  assertClient()
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) throw error
-  return data.session
+// ── 認証（独自: admins テーブル＋セッショントークン） ──
+export async function signIn(loginId, password) {
+  const { token } = await callAdmin('login', { login_id: loginId, password })
+  setToken(token)
+  return token
 }
 
 export async function signOut() {
-  assertClient()
-  const { error } = await supabase.auth.signOut()
-  if (error) throw error
+  try { await callAdmin('logout') } catch { /* 失敗してもローカルのトークンは消す */ }
+  setToken(null)
 }
 
+// 保存済みトークンが今も有効か確認する（有効ならセッション相当のオブジェクトを返す）。
 export async function getSession() {
-  if (!supabase) return null
-  const { data } = await supabase.auth.getSession()
-  return data.session
-}
-
-export function onAuthChange(cb) {
-  if (!supabase) return () => {}
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => cb(session))
-  return () => data.subscription.unsubscribe()
+  if (!supabase || !getToken()) return null
+  try {
+    await callAdmin('me')
+    return { token: getToken() }
+  } catch {
+    setToken(null)   // 失効していたら消す
+    return null
+  }
 }

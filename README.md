@@ -46,7 +46,7 @@ npm run preview  # ビルド結果の確認
 
 レッスン管理画面 `/admin` は、レッスンデータの保存に Supabase（DB / 認証 / ストレージ）を使います。ここでは**ローカルでの動かし方**を説明します。**本番セットアップ・本番へのマイグレーション適用・デプロイは [OPERATIONS.md](OPERATIONS.md)** を、設計・仕組みは [`CLAUDE.md`](CLAUDE.md) の「ルーティングとレッスン管理」を参照。
 
-> Supabase 未設定でもエディタは動作します（レッスンはバンドルの既定データにフォールバックし、`/admin` は「未設定」表示になります）。
+> Supabase 未設定でもエディタ（描画）は動作しますが、レッスンは取得できず一覧が空になります（`/admin` は「未設定」表示）。
 
 ### ローカル開発（Supabase CLI）
 
@@ -69,7 +69,15 @@ npx supabase start   # Docker 上にローカルスタックを起動
 | anon key | 出力された `anon key` をコピー |
 
 - **スキーマ適用**: `npx supabase db reset`（`supabase/migrations/` を古い順に適用し、シードも投入。ローカル DB は初期化される）。
-- **管理者ユーザー**: Studio → Authentication → Add user（「Auto Confirm User」を有効に）。
+- **Edge Function**: `npx supabase functions serve admin`（管理API＝ログイン・書き込み・お題画像を配信）。`http://localhost:5173/admin` を使う間はこれを起動しておく。
+- **管理者アカウント**: Supabase Auth ではなく `admins` テーブルで管理。Studio → SQL Editor で作成:
+
+  ```sql
+  insert into public.admins (login_id, password)
+  values ('admin', public.admin_hash_password('好きなパスワード'));
+  ```
+
+  これが `/admin` のログイン（ログインID＋パスワード）になる。パスワードは bcrypt でハッシュ保存される。
 - **`.env`**: `VITE_SUPABASE_URL=http://127.0.0.1:54321` と、表示された anon key を `VITE_SUPABASE_ANON_KEY` に設定。
 - **停止**: `npx supabase stop`（データ保持） / `npx supabase stop --no-backup`（ローカル DB も破棄）。
 - **スキーマ変更**: 既存マイグレーションは編集せず**新しいマイグレーションを追加**する。作法は [`supabase/migrations/README.md`](supabase/migrations/README.md)、本番への適用は [OPERATIONS.md](OPERATIONS.md)。

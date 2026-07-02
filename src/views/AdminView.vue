@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { isSupabaseConfigured } from '../core/supabase.js'
-import { signIn, signOut, getSession, onAuthChange } from '../core/lessonsApi.js'
+import { signIn, signOut, getSession } from '../core/lessonsApi.js'
 import AdminLogin from '../components/admin/AdminLogin.vue'
 
 // /admin のシェル：Supabase 設定チェック・ログイン・共通ヘッダー・ログアウトを担い、
@@ -12,21 +12,18 @@ const session = ref(null)
 const loginLoading = ref(false)
 const loginError = ref('')
 
-let unsub = () => {}
 onMounted(async () => {
   if (!configured) return
-  // getSession() で初期表示を即決め（ログインフォームのちらつき防止）。
+  // 保存済みトークンが有効ならログイン状態で開始（無効／未ログインならログイン画面）。
   session.value = await getSession()
-  unsub = onAuthChange(s => { session.value = s })
 })
-onUnmounted(() => unsub())
 
-async function handleLogin({ email, password }) {
+async function handleLogin({ loginId, password }) {
   loginLoading.value = true
   loginError.value = ''
   try {
-    await signIn(email, password)
-    // セッションは onAuthChange 経由で反映される
+    await signIn(loginId, password)
+    session.value = { ok: true }
   } catch (e) {
     loginError.value = `ログインに失敗しました: ${e.message || e}`
   } finally {
