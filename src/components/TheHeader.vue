@@ -25,7 +25,7 @@ function onClear() {
 
 <template>
   <header id="hdr">
-    <span id="logo">DOTWORKS</span>
+    <span id="logo">DOTWORK</span>
     <div class="vsep"></div>
 
     <div class="hgrp">

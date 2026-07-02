@@ -8,7 +8,7 @@ const PRESETS = ['#ffffff', '#9aa0a6', '#000000', '#2a6cf0', '#e0407a', '#3fbf6f
 
 // ユーザーが追加したカスタム背景色は localStorage に永続保存する。
 // （選択中の色 S.bg 自体は保存せず、リロード時は透過チェッカーに戻る）
-const STORE_KEY = 'dotworks.bgColors'
+const STORE_KEY = 'dotwork.bgColors'
 const MAX_SAVED = 16
 
 function loadSaved() {

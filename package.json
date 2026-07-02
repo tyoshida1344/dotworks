@@ -1,5 +1,5 @@
 {
-  "name": "dotworks",
+  "name": "dotwork",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,10 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "vite build && netlify deploy --prod --dir=dist",
-    "deploy:preview": "vite build && netlify deploy --dir=dist"
+    "deploy:preview": "vite build && netlify deploy --dir=dist",
+    "db:push": "node scripts/supabase-db-push.mjs",
+    "db:push:dry": "npx supabase db push --dry-run"
   },
   "dependencies": {
-    "vue": "^3.5.0"
+    "@supabase/supabase-js": "^2.108.2",
+    "vue": "^3.5.0",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",

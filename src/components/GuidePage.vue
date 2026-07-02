@@ -41,9 +41,9 @@ const STRAY_NG = ['..aaaa..a.', '.aaaaaa...', '.aaaaaa...', '..aaaa....', '.....
 const SECTIONS = [
   {
     id: 'intro', nav: 'はじめに', html: `
-    <h2>Welcome to DOTWORKS</h2>
-    <p>DOTWORKS は初心者でも完成度の高いドット絵が作れるようにするツールです。秘訣は<strong>選択肢を絞ること</strong>。小さいキャンバス、限定パレット、そしてこれらのツールが残りをやってくれます。</p>
-    <p>プロらしいドット絵は4つの要素で決まります：<strong>陰影と光</strong>、<strong>きれいな縁取り</strong>、<strong>線のキレ</strong>、<strong>色数の節度</strong>。DOTWORKSはこれらすべてに対応しています。</p>
+    <h2>Welcome to DOTWORK</h2>
+    <p>DOTWORK は初心者でも完成度の高いドット絵が作れるようにするツールです。秘訣は<strong>選択肢を絞ること</strong>。小さいキャンバス、限定パレット、そしてこれらのツールが残りをやってくれます。</p>
+    <p>プロらしいドット絵は4つの要素で決まります：<strong>陰影と光</strong>、<strong>きれいな縁取り</strong>、<strong>線のキレ</strong>、<strong>色数の節度</strong>。DOTWORKはこれらすべてに対応しています。</p>
     `,
   },
   {

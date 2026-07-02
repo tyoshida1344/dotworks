@@ -4,49 +4,31 @@
 
 ## コマンド
 
-```bash
-npm run dev      # 開発サーバー起動 (Vite HMR)
-npm run build    # プロダクションビルド → dist/
-npm run preview  # ビルド結果のプレビュー
-```
+ローカル開発・利用は `README.md`、本番運用（Netlify デプロイ・Supabase 本番・マイグレーション適用）は `OPERATIONS.md`、マイグレーションの作法は `supabase/migrations/README.md`。
+変更後の検証は `npm run build`（このリポジトリにテスト／Lint の設定は無い）。
 
 ## プロジェクト概要
 
-**DOTWORKS** — デザイン経験のないゲーム開発者向けのドット絵エディタ。選択肢を絞り、陰影・縁取り・ディザリングを自動化することで初心者でも完成度の高いスプライトを作れるようにする。
-
-技術スタック: **Vite + Vue 3 (Composition API / `<script setup>`)** + Vanilla JS コアモジュール。
+**DOTWORK** — 初心者向けのドット絵エディタ。設計思想は「選択肢を絞り、陰影・縁取り・ディザリングを自動化する」こと（実装判断の前提。製品紹介・機能一覧は `README.md`）。技術スタックは **Vite + Vue 3（Composition API / `<script setup>`）** ＋ Vanilla JS コアモジュール。
 
 ## ファイル構成
 
+置き場所の地図のみ。各ファイルの責務はアーキテクチャ節とソースを参照。
+
 ```
 src/
-  main.js          ← Vue アプリのエントリーポイント
-  App.vue          ← ルートコンポーネント。キーボードショートカット管理
-  style.css        ← グローバルスタイル（CSS 変数・全コンポーネント共通）
-  core/
-    state.js       ← reactive(S)：アプリの唯一の状態
-    palette.js     ← PAL定数、hexToHsl/hslToHex、generateLamp、extractPaletteFromImage、imageToPixels
-    canvas.js      ← initContexts、resize、resetCanvas、zoomCanvas、drawBg/drawPx/drawGrid
-    tools.js       ← idx、inB、setPx、bres、floodFill、applyDraw、autoOutline/removeOutline
-    history.js     ← saveUndo、undo、redo、clearAll（描画呼び出しは含まない）
-    export.js      ← exportPNG（16倍スケール・背景透過）
-    ui.js          ← reactive({hoverPos, guidePageOpen, cropOpen})：UI固有の揮発性状態
-  components/
-    TheHeader.vue      ← ロゴ、サイズ選択、アクション群
-    TheToolbar.vue     ← ツールボタン縦並び＋対称トグル
-    TheCanvas.vue      ← 3層キャンバス、マウスイベント、canvas.js 初期化
-    TheSidebar.vue     ← 各パネルのコンテナ
-    TheStatusBar.vue   ← カーソル位置、ツール名、ズーム操作
-    SidePanel.vue      ← 再利用可能なサイドバーセクション（title + tooltip + slot）
-    GuidePage.vue      ← 全画面ガイドオーバーレイ（v-html + IntersectionObserver）
-    ImageImportModal.vue ← 画像→ドット変換のクロップオーバーレイ（比率固定の枠を移動／リサイズ）
-    panels/
-      ColorPanel.vue     ← 現在色 + シャドウランプ（まとめてひとつのコンポーネント）
-      PalettePanel.vue   ← パレット選択 + スウォッチグリッド
-      EnhancePanel.vue   ← Auto Outline / Remove Outline
-      GuidesPanel.vue    ← 頭身スライダー、中心線、カスタム補助線
-      BackgroundPanel.vue ← キャンバス背景色（透過チェッカー／プリセット／カスタム。書き出し非対象。追加カスタム色は localStorage `dotworks.bgColors` に永続、選択状態 S.bg は非永続）
-      RefImagePanel.vue  ← 参照画像（ドロップゾーン・オーバーレイ・パレット抽出・ドット変換）
+  main.js / App.vue / router.js  ← エントリ、<router-view>、ルート定義（/ と /admin＋子ルート、/admin は遅延ロード・直リンクのみ）
+  style.css                      ← グローバル CSS（:root に CSS 変数）
+  core/        ← 状態とロジック（Vanilla JS）: state / palette / canvas / tools / history / export / ui
+                 ＋ レッスン管理まわり: lessons / supabase / lessonsApi
+  views/       ← EditorView（エディタ本体）/ AdminView（/admin のシェル: 認証＋ヘッダー）
+                 ＋ AdminHome（管理トップのメニュー）/ LessonAdmin（レッスン管理）
+  components/  ← The*（Header/Toolbar/Canvas/Sidebar/StatusBar）、SidePanel、各オーバーレイ（Guide/Lesson/ImageImport）
+    panels/    ← サイドバーの各パネル（Color / Palette / Enhance / Guides / Background / RefImage）
+    admin/     ← AdminLogin / LessonForm
+supabase/migrations/  ← DB マイグレーション（スキーマ・RLS・バケット・RPC・管理者アカウント admins/admin_sessions／既定レッスンのシード）
+supabase/functions/   ← Edge Function（admin: 管理者認証・レッスン/お題画像の書き込み。service_role）
+.env.example         ← Supabase 接続情報テンプレート
 ```
 
 ## アーキテクチャ
@@ -55,9 +37,23 @@ src/
 
 `S = reactive({...})` がアプリ唯一の状態ソース。Vue の Proxy ベース reactivity で動作するため、`S.pixels[i] = color` 等のインデックス代入もトラッキングされる。ただしピクセル配列の変更を watch することはパフォーマンス上避けており、代わりにツール関数が直接 `drawPx()` を呼ぶ。
 
-キャンバスの初期サイズは **16×16**。サイズを変更すると `resetCanvas()` が `saveDefaultSize()` で localStorage（キー `dotworks.canvasSize`）に保存し、次回起動時の既定値として復元する。`SIZES` 配列は `TheHeader` の SIZE セレクト選択肢と一致させること。
+キャンバスの初期サイズは **16×16**。サイズを変更すると `resetCanvas()` が `saveDefaultSize()` で localStorage（キー `dotwork.canvasSize`）に保存し、次回起動時の既定値として復元する。`SIZES` 配列は `TheHeader` の SIZE セレクト選択肢と一致させること。
 
-`ui.js` は `hoverPos`（カーソル位置）・`guidePageOpen`（ガイドページ表示）・`cropOpen`（画像→ドット変換のクロップ表示）など、アンドゥ履歴に含める必要のない揮発性状態を持つ。これらは `S` から分離してある。
+`ui.js` は `hoverPos`（カーソル位置）・`guidePageOpen`（ガイドページ表示）・`cropOpen`（画像→ドット変換のクロップ表示）・`lessonPageOpen`（レッスン選択表示）など、アンドゥ履歴に含める必要のない揮発性状態を持つ。これらは `S` から分離してある。
+
+### ルーティングとレッスン管理（router.js / lessons.js / lessonsApi.js / supabase.js）
+
+`vue-router`（history モード）。`/` = `EditorView`（エディタ本体）。`/admin` = `AdminView`（遅延ロード）で、これは **DOTWORK ADMIN の「シェル」**（Supabase 設定チェック・ログイン・共通ヘッダー・ログアウト）。管理機能そのものは子ルートに分離する: `/admin`（index）= `AdminHome`（管理トップのメニュー）、`/admin/lessons` = `LessonAdmin`（レッスン管理）。今後の管理機能は子ルート＋`AdminHome` のメニュー項目として足す。`/admin` は UI 上の導線を置かず**直リンクのみ**で到達し、エディタへ戻る導線も持たない。`App.vue` は `<router-view>` だけ。SPA フォールバックは `netlify.toml` の redirect で対応。
+
+レッスンの正データは **Supabase**（`lessons` テーブル＋公開バケット `lesson-refs`）。`supabase.js` は env（`VITE_SUPABASE_*`）から anon クライアントを作り、未設定なら `null`。`lessonsApi.js` は、**読み取り**（`fetchLessons`）を anon で直接行い、**書き込み・お題画像・認証**は Edge Function `admin` 経由で行う。DB 列（`id`/`description`/`deleted_at`…）とフロントの形（`id`/`desc`…）を相互変換する。レッスンの削除は物理削除ではなく `deleted_at` を立てる**論理削除**で、一覧は `deleted_at is null` のみ取得する。
+
+`lessons.js` の `LESSONS` は**リアクティブ配列**。`loadLessons()` が Supabase から取得して中身を差し替える（未設定・取得失敗時は空。バンドルのフォールバックは持たない）。このとき**お題画像（`ref`）が無いレッスンは未公開扱いで除外**する（学習者向けの `LESSONS` にだけ効くフィルタで、管理画面が使う `fetchLessons()` は全件返す＝画像を付ければ公開される）。`@supabase/supabase-js` をエディタ初期ロードのバンドルから外すため、`lessons.js` は `supabase`/`lessonsApi` を**動的 import** し、`LessonPage` を初めて開いた時に `ensureLessons()` で読み込む（`main.js` では先読みしない）。管理画面で更新したら `invalidateLessons()` を呼び、次にレッスン画面を開いた時に取り直す。
+
+お題画像は公開バケットに**毎回ユニークなファイル名**で保存（CDN キャッシュ汚染・URL 列挙の回避）。アップロードは Edge Function が**署名付きアップロードURL**を発行してクライアントがそこへ直接送る。差し替え・削除時は旧画像を `deleteRefImage()`（Edge Function 経由）で掃除する。閲覧（公開読み）は anon 可、書き込みはクライアントから不可。
+
+### 認証と管理者アカウント（Edge Function `admin`）
+
+管理者は **Supabase Auth と切り離した独自アカウント**。`admins` テーブル（`login_id`＋bcrypt ハッシュの `password`）＋`admin_sessions`（トークンは sha256 ハッシュで保存）で認証する。ログイン・書き込み・お題画像は Edge Function `supabase/functions/admin`（**service_role**）が担い、クライアント（anon）は `x-admin-token` を送るだけ。RLS は `lessons`/バケットとも**書き込みをクライアントから禁止**し（service_role のみ）、読み取りは全員。これは学習者アカウント（Supabase Auth／将来 Google）を管理者と**完全分離**するため。管理者の作成・パス変更は DB 操作（Studio / SQL、`admin_hash_password()`）で行う。`admin` 関数は独自トークン認証のため `config.toml` で `verify_jwt = false`。
 
 ### 3層キャンバス（canvas.js）
 

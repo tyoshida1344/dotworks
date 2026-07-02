@@ -1,4 +1,4 @@
-# DOTWORKS
+# DOTWORK
 
 初心者でも"レベルの高いドット絵"が作れるピクセルアートエディタ。
 
@@ -35,36 +35,59 @@ npm run dev
 ## コマンド
 
 ```bash
-npm run dev            # 開発サーバー起動（HMR あり）
-npm run build          # プロダクションビルド → dist/
-npm run preview        # ビルド結果の確認
-npm run deploy         # ビルド → Netlify 本番へデプロイ
-npm run deploy:preview # ビルド → Netlify 下書きプレビューURLを生成
+npm run dev      # 開発サーバー起動（HMR あり）
+npm run build    # プロダクションビルド → dist/
+npm run preview  # ビルド結果の確認
 ```
 
-## デプロイ（Netlify）
+本番デプロイ・本番 DB へのマイグレーション適用は [OPERATIONS.md](OPERATIONS.md) を参照。
 
-[Netlify](https://www.netlify.com/) でホストしています。`netlify-cli` を使い、ローカルから一発でビルド＆デプロイできます。
+## レッスン管理（Supabase）
 
-### 初回だけの準備
+レッスン管理画面 `/admin` は、レッスンデータの保存に Supabase（DB / 認証 / ストレージ）を使います。ここでは**ローカルでの動かし方**を説明します。**本番セットアップ・本番へのマイグレーション適用・デプロイは [OPERATIONS.md](OPERATIONS.md)** を、設計・仕組みは [`CLAUDE.md`](CLAUDE.md) の「ルーティングとレッスン管理」を参照。
 
-Netlify アカウントでの認証と、このフォルダと既存サイトの紐付けが必要です（対話・ブラウザ認証）。
+> Supabase 未設定でもエディタ（描画）は動作しますが、レッスンは取得できず一覧が空になります（`/admin` は「未設定」表示）。
+
+### ローカル開発（Supabase CLI）
+
+Docker 上に Postgres・Auth・Storage・Studio を立ち上げ、手元だけで動かせます。
+
+**前提**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)（起動しておく） / [Supabase CLI](https://supabase.com/docs/guides/local-development)（グローバル導入は不要。以下は `npx` 例。scoop / Homebrew でも可）
 
 ```bash
-npx netlify login   # ブラウザが開いて認証
-npx netlify link    # このフォルダを既存の Netlify サイトに紐付け
+npx supabase init    # 初回のみ。supabase/config.toml を生成（対話で y/N を聞かれる）
+npx supabase start   # Docker 上にローカルスタックを起動
 ```
 
-紐付け情報は `.netlify/`（gitignore 済み）に保存されます。
+起動後に表示される接続情報（後から `npx supabase status` でも確認可）:
 
-### デプロイ
+| 項目 | 値 |
+|---|---|
+| API URL | `http://127.0.0.1:54321` |
+| Studio（管理 UI） | `http://127.0.0.1:54323` |
+| DB URL | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| anon key | 出力された `anon key` をコピー |
 
-```bash
-npm run deploy          # ビルド → 本番URLへ反映
-npm run deploy:preview  # ビルド → 下書きプレビューURLを生成（本番は変えない）
-```
+- **スキーマ適用**: `npx supabase db reset`（`supabase/migrations/` を古い順に適用し、シードも投入。ローカル DB は初期化される）。
+- **Edge Function**: `npx supabase functions serve admin`（管理API＝ログイン・書き込み・お題画像を配信）。`http://localhost:5173/admin` を使う間はこれを起動しておく。
+- **管理者アカウント**: Supabase Auth ではなく `admins` テーブルで管理。Studio → SQL Editor で作成:
 
-`npm run deploy` は内部で `vite build && netlify deploy --prod --dir=dist` を実行します。ビルド設定（コマンド・公開ディレクトリ）は `netlify.toml` に定義しています。
+  ```sql
+  insert into public.admins (login_id, password)
+  values ('admin', public.admin_hash_password('好きなパスワード'));
+  ```
+
+  これが `/admin` のログイン（ログインID＋パスワード）になる。パスワードは bcrypt でハッシュ保存される。
+- **`.env`**: `VITE_SUPABASE_URL=http://127.0.0.1:54321` と、表示された anon key を `VITE_SUPABASE_ANON_KEY` に設定。
+- **停止**: `npx supabase stop`（データ保持） / `npx supabase stop --no-backup`（ローカル DB も破棄）。
+- **スキーマ変更**: 既存マイグレーションは編集せず**新しいマイグレーションを追加**する。作法は [`supabase/migrations/README.md`](supabase/migrations/README.md)、本番への適用は [OPERATIONS.md](OPERATIONS.md)。
+
+### 利用メモ
+
+- `npm run dev` で起動し、`http://localhost:5173/admin` にアクセス（UI 上の導線はなく直リンクのみ）。ログイン後にレッスンの新規作成・編集・削除・並び替えができる。
+- お題画像は **PNG / SVG・2MB まで・任意**。アップロードすると公開バケットにユニークなファイル名で保存され、差し替え・削除時に旧画像は自動で掃除される。未設定のカードは「画像なし」表示になる。
+- 既定 4 レッスンのお題画像は `src/assets/lessons/lv1/`・`lv2/` にあるので、初回はそれぞれ編集してアップロードする。
+- 公開バケットのため、URL を知れば誰でも画像を閲覧可能（お題画像は元々公開前提）。
 
 ## キーボードショートカット
 

@@ -1,3 +1,10 @@
 [build]
   command = "npm run build"
   publish = "dist"
+
+# vue-router (history モード) の SPA フォールバック。
+# /admin などへ直接アクセス・リロードしても index.html を返す。
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

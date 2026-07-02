@@ -715,4 +715,174 @@ input[type=range] { flex: 1; height: 4px; accent-color: var(--amber); cursor: po
   #lpage-inner { padding: 20px 16px 48px; }
   #lpage-logo { font-size: 18px; }
   #lpage-close { top: 8px; right: 10px; }
+
+  /* レッスン管理：モーダルを縦積みに */
+  .lf-modal { grid-template-columns: 1fr; }
+  .lf-preview { border-left: none; border-top: 1px solid var(--border); }
+  .admin-item { flex-wrap: wrap; }
+  .admin-item-actions { width: 100%; justify-content: flex-end; }
 }
+
+/* ── レッスン管理画面（/admin） ───────────────── */
+#admin {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  overflow-y: auto;
+  color: var(--text);
+}
+.admin-logo {
+  display: block;
+  font-family: 'Silkscreen', monospace;
+  color: var(--amber);
+  font-size: 20px;
+  letter-spacing: 1px;
+  text-decoration: none;   /* ヘッダーではロゴを管理トップへのリンクにするため */
+}
+.admin-login-note { color: var(--muted); font-size: 13px; line-height: 1.7; }
+.admin-error {
+  color: #dc2626;
+  font-size: 13px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  padding: 7px 10px;
+  margin: 6px 0;
+}
+/* リンクをボタン見た目に揃える */
+.admin-btn {
+  display: inline-block;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 14px;
+  padding: 4px 9px;
+  border-radius: 3px;
+  text-decoration: none;
+}
+.admin-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+/* 入力部品 */
+.admin-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 11px; }
+.admin-field > span { font-size: 12px; color: var(--muted); }
+.admin-field input[type="text"],
+.admin-field input[type="email"],
+.admin-field input[type="password"],
+.admin-field input[type="number"],
+.admin-field textarea,
+.admin-field select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  padding: 6px 9px;
+  border-radius: 3px;
+  width: 100%;
+}
+.admin-field textarea { resize: vertical; }
+.admin-field input:focus, .admin-field textarea:focus, .admin-field select:focus {
+  outline: 1px solid var(--amber); outline-offset: 1px;
+}
+
+/* ログイン */
+.admin-login { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.admin-login-box {
+  width: 100%; max-width: 340px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.admin-login-box .admin-logo { margin-bottom: 6px; }
+.admin-login-box .admin-login-note { margin-bottom: 12px; }
+.admin-login-box button { margin-top: 6px; }
+
+.admin-notice { max-width: 520px; margin: 80px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.admin-notice p { font-size: 14px; line-height: 1.7; }
+.admin-notice code, .admin-login-note code { background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+/* 管理画面本体 */
+.admin-main { max-width: 820px; margin: 0 auto; padding: 28px 22px 60px; }
+.admin-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.admin-head-actions { display: flex; gap: 8px; align-items: center; }
+.admin-subhead { display: flex; gap: 12px; align-items: center; }
+.admin-subtitle { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--text); letter-spacing: .5px; }
+
+/* 管理トップのメニュー */
+.admin-menu { display: flex; flex-direction: column; gap: 10px; }
+.admin-menu-item {
+  display: block;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  text-decoration: none;
+}
+.admin-menu-item:hover { border-color: var(--amber); }
+.amm-title { font-size: 15px; color: var(--text); }
+.amm-desc { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.admin-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.admin-item {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.admin-item-thumb {
+  width: 56px; height: 56px; flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: repeating-conic-gradient(#cdd1d6 0% 25%, #f3f4f6 0% 50%) 0 / 12px 12px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.admin-item-thumb img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.admin-item-body { flex: 1; min-width: 0; }
+.admin-item-title { font-size: 15px; color: var(--text); margin-top: 4px; }
+.admin-unpublished {
+  font-size: 11px;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+.admin-item-actions { display: flex; gap: 6px; align-items: center; }
+.admin-move { padding: 4px 8px; line-height: 1; }
+
+/* 編集モーダル（フォーム＋プレビュー） */
+.lf-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 400;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px; overflow-y: auto;
+}
+.lf-modal {
+  width: 100%; max-width: 760px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  overflow: hidden;
+}
+.lf-edit { padding: 20px; }
+.lf-head { font-size: 16px; color: var(--text); margin-bottom: 16px; }
+.lf-row { display: flex; gap: 10px; }
+.lf-row .admin-field { flex: 1; }
+.lf-narrow { max-width: 96px; }
+.lf-palette { display: flex; flex-direction: column; gap: 6px; }
+.lf-color { display: flex; align-items: center; gap: 6px; }
+.lf-color input[type="color"] { width: 34px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 3px; background: none; cursor: pointer; }
+.lf-hex { flex: 1; }
+.lf-x { padding: 4px 8px; line-height: 1; }
+.lf-hint { font-size: 12px; color: var(--muted); }
+.lf-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+.lf-preview { background: var(--bg); border-left: 1px solid var(--border); padding: 20px; }
+.lf-preview-label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 10px; }
+.lf-noimg { color: var(--muted); font-size: 13px; padding: 40px 0; }

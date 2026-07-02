@@ -1,6 +1,10 @@
 <script setup>
+import { watch } from 'vue'
 import { ui } from '../core/ui.js'
-import { LESSONS, lessonState, startLesson } from '../core/lessons.js'
+import { LESSONS, lessonState, startLesson, ensureLessons } from '../core/lessons.js'
+
+// レッスン画面を初めて開いたときに一覧を読み込む（初期ロードを軽くするため遅延）。
+watch(() => ui.lessonPageOpen, open => { if (open) ensureLessons() })
 
 function onStart(lesson) {
   // 開始すると現在の描画は消えるため確認する（ヘッダーのリサイズと同様の作法）

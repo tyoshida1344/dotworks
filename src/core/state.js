@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { PAL } from './palette.js'
 
-const SIZE_KEY = 'dotworks.canvasSize'
+const SIZE_KEY = 'dotwork.canvasSize'
 const SIZES = [16, 24, 32, 48]   // SIZE セレクトの選択肢と一致させる
 
 // 前回選択したキャンバスサイズを localStorage から復元（未保存・無効値なら 16）
