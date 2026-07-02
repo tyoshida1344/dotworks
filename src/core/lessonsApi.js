@@ -119,8 +119,10 @@ export async function getSession() {
   try {
     await callAdmin('me')
     return { token: getToken() }
-  } catch {
-    setToken(null)   // 失効していたら消す
+  } catch (e) {
+    // 401（失効・無効）のときだけトークンを消す。一時的な障害では残し、
+    // 次回アクセス時に再検証できるようにする（誤ログアウトの防止）。
+    if (e.status === 401) setToken(null)
     return null
   }
 }
